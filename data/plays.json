@@ -1,0 +1,7 @@
+{
+  "plays": [
+    {"name": "Pick and Roll", "description": "Set a screen and roll to the basket for an easy shot."},
+    {"name": "Zone Defense", "description": "Players cover designated areas to prevent scoring."},
+    {"name": "Fast Break", "description": "Quick transition from defense to offense for a layup."}
+  ]
+}

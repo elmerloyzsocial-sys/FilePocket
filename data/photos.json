@@ -1,0 +1,7 @@
+{
+  "photos": [
+    {"url": "assets/images/game1.jpg", "caption": "Victory against Falcons"},
+    {"url": "assets/images/game2.jpg", "caption": "Team huddle"},
+    {"url": "assets/images/game3.jpg", "caption": "Slam dunk moment"}
+  ]
+}
