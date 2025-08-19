@@ -11,6 +11,7 @@
       display: flex;
       align-items: center;
       gap: 0.5em;
+      flex-wrap: wrap;
     }
     .gallery-title-row input {
       font-size: 1.1em;
@@ -36,6 +37,13 @@
     }
     .add-btn:hover, .edit-btn:hover {
       background: #e65100;
+    }
+    .file-upload {
+      margin: 0.5em 0;
+    }
+    .file-upload input[type="file"] {
+      display: inline-block;
+      margin-right: 0.5em;
     }
   </style>
 </head>
@@ -72,7 +80,7 @@
   </footer>
   <script src="assets/js/main.js"></script>
   <script>
-    // Load galleries from localStorage or data/photos.json
+    // Get galleries from localStorage, else fallback to JSON file
     function getGalleries(callback) {
       let galleries = [];
       try {
@@ -154,7 +162,13 @@
           (gallery.photos || []).forEach(photo => {
             const photoDiv = document.createElement('div');
             const img = document.createElement('img');
-            img.src = photo.url;
+            if (photo.data) {
+              img.src = photo.data;
+            } else if (photo.url) {
+              img.src = photo.url;
+            } else {
+              img.alt = "No image";
+            }
             img.alt = photo.caption;
             img.title = photo.caption;
             const caption = document.createElement('div');
@@ -193,15 +207,15 @@
       renderGalleries();
     }
 
-    // Add photo to gallery
-    function addPhotoToGallery(galleryIdx, url, caption) {
+    // Add photo to gallery (Base64 support)
+    function addPhotoToGallery(galleryIdx, data, caption) {
       let galleries = [];
       try {
         galleries = JSON.parse(localStorage.getItem('galleries') || '[]');
       } catch {}
       if (!galleries[galleryIdx]) return;
       galleries[galleryIdx].photos = galleries[galleryIdx].photos || [];
-      galleries[galleryIdx].photos.unshift({ url, caption });
+      galleries[galleryIdx].photos.unshift({ data, caption });
       localStorage.setItem('galleries', JSON.stringify(galleries));
       closeModal();
       renderGalleries();
@@ -221,13 +235,24 @@
       } else if (type === 'photo') {
         html = `
           <h3>Add Photo</h3>
-          <input type="text" id="photoUrl" placeholder="Image URL" required><br>
+          <div class="file-upload">
+            <input type="file" id="photoFile" accept="image/*" required>
+          </div>
           <input type="text" id="photoCaption" placeholder="Caption" required><br>
           <button type="button" onclick="submitPhoto(${galleryIdx})">Add Photo</button>
+          <div id="photoPreview"></div>
         `;
       }
       form.innerHTML = html;
       modal.style.display = 'flex';
+
+      // Attach file input handler if adding photo
+      if (type === 'photo') {
+        const fileInput = document.getElementById('photoFile');
+        fileInput.addEventListener('change', function(e){
+          previewPhoto(e.target.files[0]);
+        });
+      }
     }
 
     function closeModal() {
@@ -239,10 +264,32 @@
       const title = document.getElementById('galleryTitle').value;
       if (title.trim()) addGallery(title.trim());
     }
+
     function submitPhoto(galleryIdx) {
-      const url = document.getElementById('photoUrl').value;
+      const fileInput = document.getElementById('photoFile');
+      const file = fileInput.files[0];
       const caption = document.getElementById('photoCaption').value;
-      if (url.trim() && caption.trim()) addPhotoToGallery(galleryIdx, url.trim(), caption.trim());
+      if (!file || !caption.trim()) return alert('Please select an image and enter a caption.');
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        const base64 = e.target.result;
+        addPhotoToGallery(galleryIdx, base64, caption.trim());
+      };
+      reader.readAsDataURL(file);
+    }
+
+    // Image preview
+    function previewPhoto(file) {
+      if (!file) {
+        document.getElementById('photoPreview').innerHTML = '';
+        return;
+      }
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        document.getElementById('photoPreview').innerHTML =
+          `<img src="${e.target.result}" style="max-width:120px;max-height:120px;border-radius:8px;margin-top:0.5em;">`;
+      };
+      reader.readAsDataURL(file);
     }
 
     renderGalleries();

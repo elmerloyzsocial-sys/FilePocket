@@ -3,25 +3,10 @@
     {
       "title": "Championship 2025",
       "photos": [
-        {"url": "assets/images/championship1.jpg", "caption": "Team holding the trophy"},
-        {"url": "assets/images/championship2.jpg", "caption": "Final game action shot"},
-        {"url": "assets/images/championship3.jpg", "caption": "Celebration with fans"}
-      ]
-    },
-    {
-      "title": "Practice Sessions",
-      "photos": [
-        {"url": "assets/images/practice1.jpg", "caption": "Coach giving advice"},
-        {"url": "assets/images/practice2.jpg", "caption": "Team stretching"},
-        {"url": "assets/images/practice3.jpg", "caption": "Shooting drills"}
-      ]
-    },
-    {
-      "title": "Friendly Matches",
-      "photos": [
-        {"url": "assets/images/friendly1.jpg", "caption": "Tip-off moment"},
-        {"url": "assets/images/friendly2.jpg", "caption": "Close defense"},
-        {"url": "assets/images/friendly3.jpg", "caption": "Post-game handshake"}
+        {
+          "data": "data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD...", 
+          "caption": "Team holding the trophy"
+        }
       ]
     }
   ]
