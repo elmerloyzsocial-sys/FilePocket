@@ -2,13 +2,13 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Ballero4Life</title>
+  <title>HoopStars Home</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <link rel="stylesheet" href="assets/css/style.css">
 </head>
 <body>
   <header class="navbar">
-    <h1>🏀 Ballero4Life</h1>
+    <h1 id="team-title" contenteditable="true" onblur="saveTeamName(this.innerText)">HoopStars</h1>
     <button class="menu-toggle" onclick="toggleNav()">☰</button>
     <nav id="main-nav">
       <a href="index.html">Home</a>
@@ -23,49 +23,52 @@
   </header>
   <main>
     <section class="card">
-      <h2>Welcome!</h2>
-      <p>Get the latest on our games, stats, and more!</p>
-      <div id="latest-news"></div>
-    </section>
-    <section class="quick-actions">
-      <h3>Quick Add</h3>
-      <button onclick="openModal('event')">Add Event</button>
-      <button onclick="openModal('advice')">Add Advice</button>
-      <button onclick="openModal('photo')">Add Photo</button>
-      <button onclick="openModal('play')">Add Play</button>
-      <button onclick="openModal('stat')">Add Stat</button>
-    </section>
-    <div id="modal" class="modal" style="display:none;">
-      <div class="modal-content">
-        <span class="close" onclick="closeModal()">&times;</span>
-        <form id="addForm"></form>
+      <h2>Team Info</h2>
+      <div>
+        <label>
+          Team Name: <input type="text" id="team-name" value="HoopStars" />
+        </label>
+        <label>
+          Win-Loss Standing:
+          <input type="text" id="win-loss-field" value="0-0" />
+        </label>
+        <label>
+          Date: <input type="date" id="team-date" value="" />
+        </label>
+        <button onclick="saveIndexInfo()">Save</button>
       </div>
-    </div>
+    </section>
+    <!-- Other content -->
   </main>
   <footer>
-    <p>&copy; 2025 Ballero4Life Basketball </p>
+    <p>&copy; 2025 HoopStars Basketball Team</p>
   </footer>
   <script src="assets/js/main.js"></script>
   <script>
-    // Show next event
-    function showLatestNews() {
-      let events = [];
-      try {
-        events = JSON.parse(localStorage.getItem('events') || '[]');
-      } catch {}
-      if (!events.length) {
-        fetch('data/events.json').then(r=>r.json()).then(data=>{
-          let e = data.events[0];
-          document.getElementById('latest-news').innerHTML =
-            `<h3>Next Event:</h3><p>${e.title} - ${e.date}</p>`;
-        });
-      } else {
-        let e = events[0];
-        document.getElementById('latest-news').innerHTML =
-          `<h3>Next Event:</h3><p>${e.title} - ${e.date}</p>`;
-      }
+    function loadIndexInfo() {
+      const info = JSON.parse(localStorage.getItem('indexInfo') || '{}');
+      document.getElementById('team-name').value = info.teamName || "HoopStars";
+      document.getElementById('win-loss-field').value = info.winLoss || "0-0";
+      document.getElementById('team-date').value = info.teamDate || "";
+      document.getElementById('team-title').innerText = info.teamName || "HoopStars";
     }
-    showLatestNews();
+    function saveIndexInfo() {
+      const info = {
+        teamName: document.getElementById('team-name').value,
+        winLoss: document.getElementById('win-loss-field').value,
+        teamDate: document.getElementById('team-date').value
+      };
+      localStorage.setItem('indexInfo', JSON.stringify(info));
+      document.getElementById('team-title').innerText = info.teamName;
+      alert("Team info saved!");
+    }
+    function saveTeamName(name) {
+      let info = JSON.parse(localStorage.getItem('indexInfo') || '{}');
+      info.teamName = name;
+      localStorage.setItem('indexInfo', JSON.stringify(info));
+      document.getElementById('team-name').value = name;
+    }
+    loadIndexInfo();
   </script>
 </body>
 </html>
