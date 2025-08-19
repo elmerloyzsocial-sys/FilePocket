@@ -2,18 +2,46 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Game Photos</title>
+  <title>Game Photos & Gallery</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <link rel="stylesheet" href="assets/css/style.css">
   <style>
-    .gallery { display: flex; flex-wrap: wrap; gap: 1em; justify-content: center; }
+    .gallery-section { margin-bottom: 2em; }
+    .gallery-title-row {
+      display: flex;
+      align-items: center;
+      gap: 0.5em;
+    }
+    .gallery-title-row input {
+      font-size: 1.1em;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+      padding: 0.2em 0.5em;
+      margin-left: 0.5em;
+      width: 60%;
+    }
+    .gallery { display: flex; flex-wrap: wrap; gap: 1em; justify-content: center; margin-top: 0.5em; }
     .gallery img { max-width: 180px; border-radius: 8px; box-shadow: 0 2px 8px #aaa; }
     .photo-caption { text-align: center; font-size: 0.95em; margin-top: 0.2em; color: #444; }
+    .add-btn, .edit-btn {
+      background: #ff9800;
+      color: #fff;
+      border: none;
+      border-radius: 6px;
+      padding: 0.3em 1em;
+      font-size: 0.95em;
+      cursor: pointer;
+      transition: background 0.2s;
+      margin-left: 0.3em;
+    }
+    .add-btn:hover, .edit-btn:hover {
+      background: #e65100;
+    }
   </style>
 </head>
 <body>
   <header class="navbar">
-    <h1>Game Photos</h1>
+    <h1>Game Photos & Gallery</h1>
     <button class="menu-toggle" onclick="toggleNav()">☰</button>
     <nav id="main-nav">
       <a href="index.html">Home</a>
@@ -28,9 +56,9 @@
   </header>
   <main>
     <section class="card">
-      <h2>Latest Game Photos</h2>
-      <button class="add-btn" onclick="openModal('photo')">Add Photo</button>
-      <div class="gallery" id="photo-gallery"></div>
+      <h2>Photo Galleries</h2>
+      <button class="add-btn" onclick="openModal('gallery')">Add Gallery</button>
+      <div id="galleries"></div>
     </section>
     <div id="modal" class="modal" style="display:none;">
       <div class="modal-content">
@@ -44,23 +72,180 @@
   </footer>
   <script src="assets/js/main.js"></script>
   <script>
-    function loadPhotos() {
-      let photos = [];
+    // Load galleries from localStorage or data/photos.json
+    function getGalleries(callback) {
+      let galleries = [];
       try {
-        photos = JSON.parse(localStorage.getItem('photos') || '[]');
+        galleries = JSON.parse(localStorage.getItem('galleries') || '[]');
       } catch {}
-      fetch('data/photos.json').then(r=>r.json()).then(data=>{
-        let allPhotos = [...photos, ...data.photos];
-        document.getElementById('photo-gallery').innerHTML =
-          allPhotos.map(p=>`
-            <div>
-              <img src="${p.url}" alt="${p.caption}" title="${p.caption}">
-              <div class="photo-caption">${p.caption}</div>
-            </div>
-          `).join('');
+      if (galleries.length) {
+        callback(galleries);
+      } else {
+        fetch('data/photos.json').then(r=>r.json()).then(data=>{
+          callback(data.galleries || []);
+        });
+      }
+    }
+
+    function renderGalleries() {
+      getGalleries(function(galleries){
+        const container = document.getElementById('galleries');
+        container.innerHTML = '';
+        galleries.forEach((gallery, idx) => {
+          const section = document.createElement('div');
+          section.className = 'gallery-section';
+
+          // Editable title row
+          const titleRow = document.createElement('div');
+          titleRow.className = 'gallery-title-row';
+
+          const title = document.createElement('span');
+          title.textContent = gallery.title;
+          title.className = 'gallery-title';
+
+          // Editable input (hidden unless editing)
+          const titleInput = document.createElement('input');
+          titleInput.type = 'text';
+          titleInput.value = gallery.title;
+          titleInput.style.display = 'none';
+
+          // Edit button
+          const editBtn = document.createElement('button');
+          editBtn.className = 'edit-btn';
+          editBtn.textContent = 'Edit Title';
+          editBtn.onclick = function() {
+            title.style.display = 'none';
+            titleInput.style.display = 'inline-block';
+            titleInput.focus();
+            editBtn.style.display = 'none';
+            saveBtn.style.display = 'inline-block';
+          };
+
+          // Save button
+          const saveBtn = document.createElement('button');
+          saveBtn.className = 'edit-btn';
+          saveBtn.textContent = 'Save';
+          saveBtn.style.display = 'none';
+          saveBtn.onclick = function() {
+            gallery.title = titleInput.value;
+            updateGallery(idx, gallery);
+            renderGalleries();
+          };
+
+          // Add Photo button
+          const addPhotoBtn = document.createElement('button');
+          addPhotoBtn.className = 'add-btn';
+          addPhotoBtn.textContent = 'Add Photo';
+          addPhotoBtn.onclick = function() {
+            openModal('photo', idx);
+          };
+
+          titleRow.appendChild(title);
+          titleRow.appendChild(titleInput);
+          titleRow.appendChild(editBtn);
+          titleRow.appendChild(saveBtn);
+          titleRow.appendChild(addPhotoBtn);
+
+          section.appendChild(titleRow);
+
+          // Gallery images
+          const galleryDiv = document.createElement('div');
+          galleryDiv.className = 'gallery';
+          (gallery.photos || []).forEach(photo => {
+            const photoDiv = document.createElement('div');
+            const img = document.createElement('img');
+            img.src = photo.url;
+            img.alt = photo.caption;
+            img.title = photo.caption;
+            const caption = document.createElement('div');
+            caption.className = 'photo-caption';
+            caption.textContent = photo.caption;
+            photoDiv.appendChild(img);
+            photoDiv.appendChild(caption);
+            galleryDiv.appendChild(photoDiv);
+          });
+
+          section.appendChild(galleryDiv);
+          container.appendChild(section);
+        });
       });
     }
-    loadPhotos();
+
+    // Update gallery in localStorage
+    function updateGallery(idx, gallery) {
+      let galleries = [];
+      try {
+        galleries = JSON.parse(localStorage.getItem('galleries') || '[]');
+      } catch {}
+      galleries[idx] = gallery;
+      localStorage.setItem('galleries', JSON.stringify(galleries));
+    }
+
+    // Add new gallery
+    function addGallery(title) {
+      let galleries = [];
+      try {
+        galleries = JSON.parse(localStorage.getItem('galleries') || '[]');
+      } catch {}
+      galleries.unshift({ title: title, photos: [] });
+      localStorage.setItem('galleries', JSON.stringify(galleries));
+      closeModal();
+      renderGalleries();
+    }
+
+    // Add photo to gallery
+    function addPhotoToGallery(galleryIdx, url, caption) {
+      let galleries = [];
+      try {
+        galleries = JSON.parse(localStorage.getItem('galleries') || '[]');
+      } catch {}
+      if (!galleries[galleryIdx]) return;
+      galleries[galleryIdx].photos = galleries[galleryIdx].photos || [];
+      galleries[galleryIdx].photos.unshift({ url, caption });
+      localStorage.setItem('galleries', JSON.stringify(galleries));
+      closeModal();
+      renderGalleries();
+    }
+
+    // Modal open/close for gallery/photo
+    function openModal(type, galleryIdx) {
+      const modal = document.getElementById('modal');
+      const form = document.getElementById('addForm');
+      let html = '';
+      if (type === 'gallery') {
+        html = `
+          <h3>Add Gallery</h3>
+          <input type="text" id="galleryTitle" placeholder="Gallery Title" required><br>
+          <button type="button" onclick="submitGallery()">Add Gallery</button>
+        `;
+      } else if (type === 'photo') {
+        html = `
+          <h3>Add Photo</h3>
+          <input type="text" id="photoUrl" placeholder="Image URL" required><br>
+          <input type="text" id="photoCaption" placeholder="Caption" required><br>
+          <button type="button" onclick="submitPhoto(${galleryIdx})">Add Photo</button>
+        `;
+      }
+      form.innerHTML = html;
+      modal.style.display = 'flex';
+    }
+
+    function closeModal() {
+      document.getElementById('modal').style.display = 'none';
+    }
+
+    // Modal submit handlers
+    function submitGallery() {
+      const title = document.getElementById('galleryTitle').value;
+      if (title.trim()) addGallery(title.trim());
+    }
+    function submitPhoto(galleryIdx) {
+      const url = document.getElementById('photoUrl').value;
+      const caption = document.getElementById('photoCaption').value;
+      if (url.trim() && caption.trim()) addPhotoToGallery(galleryIdx, url.trim(), caption.trim());
+    }
+
+    renderGalleries();
   </script>
 </body>
 </html>
