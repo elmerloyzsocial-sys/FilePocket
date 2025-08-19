@@ -2,18 +2,19 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>HoopStars Basketball Team</title>
+  <title>Ballero4Life Basketball Team</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <link rel="stylesheet" href="assets/css/style.css">
 </head>
 <body>
   <header class="navbar">
-    <h1>🏀 HoopStars</h1>
+    <h1>🏀 Ballero4Life</h1>
     <button class="menu-toggle" onclick="toggleNav()">☰</button>
     <nav id="main-nav">
       <a href="index.html">Home</a>
       <a href="schedule.html">Schedule</a>
-      <a href="stats.html">Stats</a>
+	  <a href="teamstat.html">Teamstats</a>
+      <a href="stats.html">PlayerStats</a>
       <a href="coaching.html">Coaching</a>
       <a href="plays.html">Plays</a>
       <a href="photos.html">Photos</a>
@@ -24,7 +25,7 @@
   <main>
     <section class="card">
       <h2>Welcome!</h2>
-      <p>Get the latest on our games, stats, and more!</p>
+      <p>Get the latest on our games, teamstats,player stats, and more!</p>
       <div id="latest-news"></div>
     </section>
     <section class="quick-actions">
@@ -34,6 +35,7 @@
       <button onclick="openModal('photo')">Add Photo</button>
       <button onclick="openModal('play')">Add Play</button>
       <button onclick="openModal('stat')">Add Stat</button>
+	  <button onclick="openModal('teamstat')">Add TeamStat</button>
     </section>
     <div id="modal" class="modal" style="display:none;">
       <div class="modal-content">
@@ -43,7 +45,7 @@
     </div>
   </main>
   <footer>
-    <p>&copy; 2025 HoopStars Basketball Team</p>
+    <p>&copy; 2025 Ballero4Life Basketball </p>
   </footer>
   <script src="assets/js/main.js"></script>
   <script>
