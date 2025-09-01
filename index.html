@@ -64,6 +64,10 @@
             box-shadow: 0 2px 4px rgba(0,0,0,0.05);
             transition: transform 0.2s;
             cursor: pointer;
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
         }
         .file-item:hover, .file-item:focus {
             transform: translateY(-2px);
@@ -72,6 +76,26 @@
             margin: 0.5rem 0 0;
             color: #6b7280;
             font-size: 0.85rem;
+        }
+        .file-info {
+            flex: 1 1 auto;
+            min-width: 0;
+        }
+        .delete-btn {
+            background: #dc2626;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 0.85rem;
+            font-weight: 500;
+            padding: 0.5rem 0.75rem;
+            margin-left: 1rem;
+            cursor: pointer;
+            transition: background 0.2s;
+            min-width: 70px;
+        }
+        .delete-btn:hover, .delete-btn:focus {
+            background: #b91c1c;
         }
         #viewer {
             background: white;
@@ -99,6 +123,7 @@
             h2 { font-size: 1.25rem; }
             input, textarea, button { font-size: 0.85rem; }
             .container { padding: 1rem; }
+            .delete-btn { padding: 0.35rem 0.65rem; font-size: 0.8rem; }
         }
     </style>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
@@ -222,11 +247,33 @@ function loadFiles() {
                     li.className = 'file-item';
                     li.tabIndex = 0;
                     li.setAttribute('aria-label', `Open document ${name}`);
-                    li.innerHTML = `<strong class="text-gray-800">${name}</strong><p>${description}</p>`;
-                    li.onclick = () => viewFile(cursor.value);
-                    li.onkeypress = e => {
+
+                    // File info for click/view
+                    const infoDiv = document.createElement('div');
+                    infoDiv.className = 'file-info';
+                    infoDiv.innerHTML = `<strong class="text-gray-800">${name}</strong><p>${description}</p>`;
+                    infoDiv.onclick = () => viewFile(cursor.value);
+                    infoDiv.onkeypress = e => {
                         if (e.key === 'Enter') viewFile(cursor.value);
                     };
+                    infoDiv.tabIndex = 0;
+                    infoDiv.setAttribute('role', 'button');
+                    infoDiv.setAttribute('aria-label', `Open document ${name}`);
+
+                    // Delete button
+                    const deleteBtn = document.createElement('button');
+                    deleteBtn.type = 'button';
+                    deleteBtn.className = 'delete-btn';
+                    deleteBtn.textContent = 'Delete';
+                    deleteBtn.onclick = (e) => {
+                        e.stopPropagation();
+                        deleteFile(name);
+                    };
+                    deleteBtn.setAttribute('aria-label', `Delete document ${name}`);
+
+                    li.appendChild(infoDiv);
+                    li.appendChild(deleteBtn);
+
                     ul.appendChild(li);
                 }
                 cursor.continue();
@@ -235,6 +282,25 @@ function loadFiles() {
         tx.onerror = () => showError('Error loading files from database.');
     } catch (err) {
         showError('Error accessing database: ' + err.message);
+    }
+}
+
+// Delete file logic
+function deleteFile(fileName) {
+    if (!confirm(`Are you sure you want to delete "${fileName}"? This cannot be undone.`)) return;
+
+    try {
+        const tx = db.transaction(['files'], 'readwrite');
+        const store = tx.objectStore('files');
+        const req = store.delete(fileName);
+        req.onsuccess = () => {
+            showError(`Deleted "${fileName}" successfully.`, false);
+            loadFiles();
+            document.getElementById('viewer').innerHTML = '';
+        };
+        req.onerror = () => showError(`Failed to delete "${fileName}".`);
+    } catch (err) {
+        showError('Error deleting file: ' + err.message);
     }
 }
 
