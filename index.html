@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
     <title>Mobile File Viewer</title>
     <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
     <style>
@@ -50,7 +50,7 @@
             cursor: pointer;
             transition: background 0.2s;
         }
-        button:hover {
+        button:hover, button:focus {
             background: #4338ca;
         }
         #searchInput {
@@ -61,10 +61,11 @@
             border-radius: 12px;
             padding: 1rem;
             margin-bottom: 0.75rem;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
             transition: transform 0.2s;
+            cursor: pointer;
         }
-        .file-item:hover {
+        .file-item:hover, .file-item:focus {
             transform: translateY(-2px);
         }
         .file-item p {
@@ -76,7 +77,7 @@
             background: white;
             border-radius: 12px;
             padding: 1.5rem;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
             overflow: auto;
             max-height: 60vh;
             margin-top: 1rem;
@@ -92,23 +93,12 @@
             text-align: center;
             margin-top: 0.5rem;
         }
-        /* Pixel 10 Pro (~426px CSS width) */
         @media screen and (max-width: 480px) {
-            body {
-                font-size: 16px;
-            }
-            h1 {
-                font-size: 1.5rem;
-            }
-            h2 {
-                font-size: 1.25rem;
-            }
-            input, textarea, button {
-                font-size: 0.85rem;
-            }
-            .container {
-                padding: 1rem;
-            }
+            body { font-size: 16px; }
+            h1 { font-size: 1.5rem; }
+            h2 { font-size: 1.25rem; }
+            input, textarea, button { font-size: 0.85rem; }
+            .container { padding: 1rem; }
         }
     </style>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
@@ -118,176 +108,177 @@
     <div class="container">
         <h1 class="text-2xl font-semibold text-gray-800 text-center mb-4">Document Viewer</h1>
         <div class="upload-box">
-            <input type="file" id="fileInput" multiple accept=".pdf,.doc,.docx">
-            <textarea id="descriptionInput" placeholder="Enter file description (e.g., Flight Details - JFK to LAX)" rows="3"></textarea>
-            <button onclick="uploadFiles()">Upload Document</button>
-            <p id="errorMessage" class="error-message hidden"></p>
+            <input type="file" id="fileInput" multiple accept=".pdf,.doc,.docx" aria-label="Choose files to upload">
+            <textarea id="descriptionInput" placeholder="Enter file description (e.g., Flight Details - JFK to LAX)" rows="3" aria-label="File description"></textarea>
+            <button type="button" id="uploadBtn">Upload Document</button>
+            <p id="errorMessage" class="error-message hidden" aria-live="polite"></p>
         </div>
         <h2 class="text-xl font-medium text-gray-700 text-center mb-3">Your Documents</h2>
-        <input type="text" id="searchInput" placeholder="Search by name or description" class="focus:ring-2 focus:ring-indigo-500">
+        <input type="text" id="searchInput" placeholder="Search by name or description" class="focus:ring-2 focus:ring-indigo-500" aria-label="Search documents">
         <ul id="fileList" class="mt-3"></ul>
         <div id="viewer"></div>
     </div>
-    <script>
-        let db;
-        const request = indexedDB.open('FileDB', 5); // Incremented version
+<script>
+let db;
 
-        request.onerror = (event) => {
-            showError('Failed to open database: ' + event.target.error.message);
-            console.error('Database error:', event.target.error);
-        };
+// IndexedDB setup
+const request = indexedDB.open('FileDB', 5);
 
-        request.onsuccess = (event) => {
-            db = event.target.result;
-            loadFiles();
-        };
+request.onerror = event => {
+    showError('Failed to open database: ' + event.target.error.message);
+    console.error('Database error:', event.target.error);
+};
 
-        request.onupgradeneeded = (event) => {
-            db = event.target.result;
-            if (!db.objectStoreNames.contains('files')) {
-                db.createObjectStore('files', { keyPath: 'name' });
-            }
-        };
+request.onsuccess = event => {
+    db = event.target.result;
+    loadFiles();
+};
 
-        function showError(message) {
-            const errorElement = document.getElementById('errorMessage');
-            errorElement.textContent = message;
-            errorElement.classList.remove('hidden');
-            setTimeout(() => errorElement.classList.add('hidden'), 5000);
+request.onupgradeneeded = event => {
+    db = event.target.result;
+    if (!db.objectStoreNames.contains('files')) {
+        db.createObjectStore('files', { keyPath: 'name' });
+    }
+};
+
+// Show error or success message
+function showError(message, isError = true) {
+    const errorElement = document.getElementById('errorMessage');
+    errorElement.textContent = message;
+    errorElement.classList.remove('hidden');
+    errorElement.style.color = isError ? '#dc2626' : '#16a34a';
+    setTimeout(() => errorElement.classList.add('hidden'), 4000);
+}
+
+// File upload logic
+document.getElementById('uploadBtn').addEventListener('click', async () => {
+    const files = document.getElementById('fileInput').files;
+    const description = document.getElementById('descriptionInput').value.trim();
+
+    if (!files.length) {
+        showError('Please select at least one file to upload.');
+        return;
+    }
+
+    let uploadedCount = 0;
+
+    for (let file of files) {
+        // Only allow .pdf, .doc, .docx
+        if (!/\.(pdf|docx?|)$/i.test(file.name)) {
+            showError(`Unsupported file type: ${file.name}. Use PDF, .doc, or .docx.`);
+            continue;
         }
 
-        async function uploadFiles() {
-            const files = document.getElementById('fileInput').files;
-            const description = document.getElementById('descriptionInput').value.trim();
-            if (!files.length) {
-                showError('Please select at least one file to upload.');
-                return;
-            }
+        try {
+            const arrayBuffer = await file.arrayBuffer();
 
-            let uploadedCount = 0;
-            for (let file of files) {
-                if (!file.name.endsWith('.pdf') && !file.name.endsWith('.doc') && !file.name.endsWith('.docx')) {
-                    showError(`Unsupported file type: ${file.name}. Use PDF, .doc, or .docx.`);
-                    continue;
-                }
-
-                try {
-                    // Create a new transaction for each file
-                    const tx = db.transaction(['files'], 'readwrite');
-                    const store = tx.objectStore('files');
-
-                    // Read file as ArrayBuffer
-                    const arrayBuffer = await new Promise((resolve, reject) => {
-                        const reader = new FileReader();
-                        reader.onload = () => resolve(reader.result);
-                        reader.onerror = () => reject(new Error(`Error reading ${file.name}`));
-                        reader.readAsArrayBuffer(file);
-                    });
-
-                    // Ensure transaction is still active before put
-                    if (tx.done) {
-                        showError(`Transaction closed prematurely for ${file.name}`);
-                        continue;
-                    }
-
-                    // Save file to IndexedDB
-                    await new Promise((resolve, reject) => {
-                        const request = store.put({
-                            name: file.name,
-                            data: new Blob([arrayBuffer]),
-                            type: file.type,
-                            description: description || 'No description provided'
-                        });
-                        request.onsuccess = () => {
-                            console.log(`Successfully saved ${file.name}`);
-                            resolve();
-                        };
-                        request.onerror = () => reject(new Error(`Failed to save ${file.name}: ${request.error.message}`));
-                    });
-
-                    uploadedCount++;
-                } catch (err) {
-                    showError(err.message);
-                    console.error(`Error processing ${file.name}:`, err);
-                }
-            }
-
-            if (uploadedCount > 0) {
-                loadFiles();
-                document.getElementById('fileInput').value = '';
-                document.getElementById('descriptionInput').value = '';
-                showError(`Successfully uploaded ${uploadedCount} file(s).`);
-            } else if (uploadedCount === 0 && files.length > 0) {
-                showError('No files were uploaded due to errors.');
-            }
-        }
-
-        function loadFiles() {
-            const searchQuery = document.getElementById('searchInput').value.toLowerCase();
-            const ul = document.getElementById('fileList');
-            ul.innerHTML = '';
-
-            try {
-                const tx = db.transaction(['files'], 'readonly');
+            // Save file in IndexedDB
+            await new Promise((resolve, reject) => {
+                const tx = db.transaction(['files'], 'readwrite');
                 const store = tx.objectStore('files');
+                const req = store.put({
+                    name: file.name,
+                    data: new Blob([arrayBuffer], { type: file.type }),
+                    type: file.type,
+                    description: description || 'No description provided'
+                });
+                req.onsuccess = () => resolve();
+                req.onerror = () => reject(new Error(`Failed to save ${file.name}: ${req.error?.message || ''}`));
+            });
 
-                store.openCursor().onsuccess = (event) => {
-                    const cursor = event.target.result;
-                    if (cursor) {
-                        const { name, description } = cursor.value;
-                        if (!searchQuery || name.toLowerCase().includes(searchQuery) || description.toLowerCase().includes(searchQuery)) {
-                            const li = document.createElement('li');
-                            li.className = 'file-item';
-                            li.innerHTML = `<strong class="text-gray-800">${name}</strong><p>${description}</p>`;
-                            li.onclick = () => viewFile(cursor.value);
-                            ul.appendChild(li);
-                        }
-                        cursor.continue();
-                    }
-                };
-                tx.onerror = () => {
-                    showError('Error loading files from database.');
-                };
-            } catch (err) {
-                showError('Error accessing database: ' + err.message);
-            }
+            uploadedCount++;
+        } catch (err) {
+            showError(err.message);
+            console.error(`Error processing ${file.name}:`, err);
         }
+    }
 
-        function viewFile(file) {
-            const viewer = document.getElementById('viewer');
-            viewer.innerHTML = `<p class="text-gray-800 font-medium">${file.name}</p><p class="text-gray-600 text-sm mb-3">${file.description}</p>`;
+    if (uploadedCount > 0) {
+        loadFiles();
+        document.getElementById('fileInput').value = '';
+        document.getElementById('descriptionInput').value = '';
+        showError(`Successfully uploaded ${uploadedCount} file(s).`, false);
+    } else if (uploadedCount === 0 && files.length > 0) {
+        showError('No files were uploaded due to errors.');
+    }
+});
 
-            const blob = file.data;
-            const url = URL.createObjectURL(blob);
+// Load files from IndexedDB and show in list
+function loadFiles() {
+    const searchQuery = document.getElementById('searchInput').value.toLowerCase();
+    const ul = document.getElementById('fileList');
+    ul.innerHTML = '';
 
-            if (file.type === 'application/pdf' || file.name.endsWith('.pdf')) {
-                const embed = document.createElement('embed');
-                embed.src = url;
-                embed.type = 'application/pdf';
-                embed.className = 'rounded-lg';
-                viewer.appendChild(embed);
-            } else if (file.name.endsWith('.docx') || file.name.endsWith('.doc')) {
-                const reader = new FileReader();
-                reader.onload = (e) => {
-                    mammoth.convertToHtml({ arrayBuffer: e.target.result })
-                        .then(result => {
-                            viewer.innerHTML += `<div class="prose prose-sm max-w-none">${result.value}</div>`;
-                        })
-                        .catch(err => {
-                            console.error('Error converting Word file:', err);
-                            viewer.innerHTML += '<p class="text-red-500 text-sm">Error displaying Word file. Note: .doc files may not be supported; use .docx.</p>';
-                        });
-                };
-                reader.onerror = () => {
-                    showError(`Error reading ${file.name} for display.`);
-                };
-                reader.readAsArrayBuffer(blob);
-            } else {
-                viewer.innerHTML += '<p class="text-red-500 text-sm">Unsupported file type.</p>';
+    try {
+        const tx = db.transaction(['files'], 'readonly');
+        const store = tx.objectStore('files');
+
+        store.openCursor().onsuccess = event => {
+            const cursor = event.target.result;
+            if (cursor) {
+                const { name, description } = cursor.value;
+                if (!searchQuery || name.toLowerCase().includes(searchQuery) || description.toLowerCase().includes(searchQuery)) {
+                    const li = document.createElement('li');
+                    li.className = 'file-item';
+                    li.tabIndex = 0;
+                    li.setAttribute('aria-label', `Open document ${name}`);
+                    li.innerHTML = `<strong class="text-gray-800">${name}</strong><p>${description}</p>`;
+                    li.onclick = () => viewFile(cursor.value);
+                    li.onkeypress = e => {
+                        if (e.key === 'Enter') viewFile(cursor.value);
+                    };
+                    ul.appendChild(li);
+                }
+                cursor.continue();
             }
-        }
+        };
+        tx.onerror = () => showError('Error loading files from database.');
+    } catch (err) {
+        showError('Error accessing database: ' + err.message);
+    }
+}
 
-        document.getElementById('searchInput').addEventListener('input', loadFiles);
-    </script>
+// View file logic (PDF or Word)
+function viewFile(file) {
+    const viewer = document.getElementById('viewer');
+    viewer.innerHTML = `
+        <p class="text-gray-800 font-medium">${file.name}</p>
+        <p class="text-gray-600 text-sm mb-3">${file.description}</p>
+    `;
+
+    const blob = file.data;
+    const url = URL.createObjectURL(blob);
+
+    if (file.type === 'application/pdf' || file.name.endsWith('.pdf')) {
+        const embed = document.createElement('embed');
+        embed.src = url;
+        embed.type = 'application/pdf';
+        embed.className = 'rounded-lg';
+        viewer.appendChild(embed);
+    } else if (file.name.endsWith('.docx')) {
+        // .docx supported by mammoth
+        const reader = new FileReader();
+        reader.onload = e => {
+            mammoth.convertToHtml({ arrayBuffer: e.target.result })
+                .then(result => {
+                    viewer.innerHTML += `<div class="prose prose-sm max-w-none">${result.value}</div>`;
+                })
+                .catch(err => {
+                    console.error('Error converting Word file:', err);
+                    viewer.innerHTML += '<p class="text-red-500 text-sm">Error displaying Word file. Only .docx is supported.</p>';
+                });
+        };
+        reader.onerror = () => showError(`Error reading ${file.name} for display.`);
+        reader.readAsArrayBuffer(blob);
+    } else if (file.name.endsWith('.doc')) {
+        viewer.innerHTML += '<p class="text-red-500 text-sm">.doc files may not be supported. Please use .docx.</p>';
+    } else {
+        viewer.innerHTML += '<p class="text-red-500 text-sm">Unsupported file type.</p>';
+    }
+}
+
+// Live search
+document.getElementById('searchInput').addEventListener('input', loadFiles);
+</script>
 </body>
 </html>
